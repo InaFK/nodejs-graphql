@@ -1,6 +1,7 @@
 import { FastifyPluginAsyncTypebox, Type } from '@fastify/type-provider-typebox';
 import { getMemberTypeByIdSchema, memberTypeSchema } from './schemas.js';
 import { makeExecutableSchema } from '@graphql-tools/schema';
+import { UUIDType } from './types/uuid';
 
 //- GraphQL schema
 const typeDefs = `
@@ -111,10 +112,62 @@ const typeDefs = `
   }
 `;
 
+//- define resolvers that match the schema
+const resolvers = {
+  UUID: UUIDType,
+  RootQueryType: {
+    memberTypes: async (_parent, _args, { prisma }) => prisma.memberType.findMany(),
+    memberType: async (_parent, { id }, { prisma }) => prisma.memberType.findUnique({ where: { id } }),
+    users: async (_parent, _args, { prisma }) => prisma.user.findMany(),
+    user: async (_parent, { id }, { prisma }) => prisma.user.findUnique({ where: { id } }),
+    posts: async (_parent, _args, { prisma }) => prisma.post.findMany(),
+    post: async (_parent, { id }, { prisma }) => prisma.post.findUnique({ where: { id } }),
+    profiles: async (_parent, _args, { prisma }) => prisma.profile.findMany(),
+    profile: async (_parent, { id }, { prisma }) => prisma.profile.findUnique({ where: { id } }),
+  },
+  Mutations: {
+    createUser: async (_parent, { dto }, { prisma }) => prisma.user.create({ data: dto }),
+    createProfile: async (_parent, { dto }, { prisma }) => prisma.profile.create({ data: dto }),
+    createPost: async (_parent, { dto }, { prisma }) => prisma.post.create({ data: dto }),
+    changePost: async (_parent, { id, dto }, { prisma }) => prisma.post.update({ where: { id }, data: dto }),
+    changeProfile: async (_parent, { id, dto }, { prisma }) => prisma.profile.update({ where: { id }, data: dto }),
+    changeUser: async (_parent, { id, dto }, { prisma }) => prisma.user.update({ where: { id }, data: dto }),
+    deleteUser: async (_parent, { id }, { prisma }) => {
+      await prisma.user.delete({ where: { id } });
+      return "User deleted successfully";
+    },
+    deletePost: async (_parent, { id }, { prisma }) => {
+      await prisma.post.delete({ where: { id } });
+      return "Post deleted successfully";
+    },
+    deleteProfile: async (_parent, { id }, { prisma }) => {
+      await prisma.profile.delete({ where: { id } });
+      return "Profile deleted successfully";
+    },
+    subscribeTo: async (_parent, { userId, authorId }, { prisma }) => {
+      //- add subscription logic here
+      return "Subscribed successfully";
+    },
+    unsubscribeFrom: async (_parent, { userId, authorId }, { prisma }) => {
+      //- remove subscription logic here
+      return "Unsubscribed successfully";
+    },
+  },
+  User: {
+    posts: async (user, _args, { prisma }) => prisma.post.findMany({ where: { authorId: user.id } }),
+    profile: async (user, _args, { prisma }) => prisma.profile.findUnique({ where: { userId: user.id } }),
+    userSubscribedTo: async (user, _args, { prisma }) => prisma.user.findMany({ where: { subscribedToUser: { some: { id: user.id } } } }),
+    subscribedToUser: async (user, _args, { prisma }) => prisma.user.findMany({ where: { userSubscribedTo: { some: { id: user.id } } } }),
+  },
+  Profile: {
+    memberType: async (profile, _args, { prisma }) => prisma.memberType.findUnique({ where: { id: profile.memberTypeId } }),
+  },
+};
+
 //- create an executable schema
 const schema = makeExecutableSchema({
   typeDefs,
-  // resolvers,
+  resolvers,
 });
 
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
