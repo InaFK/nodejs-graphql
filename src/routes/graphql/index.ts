@@ -10,6 +10,7 @@ import { MemberType, MemberTypeListType } from './member.js';
 import { User, UserList } from './users.js';
 import { Post, Posts } from './posts.js';
 import { Profile, ProfileList } from './profile.js';
+import { createPost, changePost, deletePost } from './services/postHelpers.js';
 
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
   const { prisma } = fastify;
@@ -27,7 +28,12 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
       return graphql({
         schema,
         source: req.body.query,
-        contextValue: { prisma },
+        contextValue: { 
+          prisma,
+          createPost,
+          changePost,
+          deletePost
+         },
         variableValues: req.body.variables,
       });
     },

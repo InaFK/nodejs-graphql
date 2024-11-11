@@ -6,6 +6,7 @@ import {
   GraphQLInputObjectType
 } from 'graphql';
 import { UUIDType } from './types/uuid.js';
+import { createPost, changePost, deletePost } from './services/postHelpers.js';
 
 export const Post = new GraphQLObjectType({
   name: 'Post',
@@ -41,7 +42,7 @@ export const PostMutations = {
     args: {
       dto: { type: new GraphQLNonNull(CreatePostInput) }
     },
-    resolve: async (_, { dto }, { createPost }) => await createPost(dto)
+    resolve: async (_, { dto }, { prisma }) => await createPost(dto, prisma)
   },
 
   changePost: {
@@ -50,7 +51,7 @@ export const PostMutations = {
       id: { type: new GraphQLNonNull(UUIDType) },
       dto: { type: new GraphQLNonNull(ChangePostInput) }
     },
-    resolve: async (_, { id, dto }, { changePost }) => await changePost(id, dto)
+    resolve: async (_, { id, dto }, { prisma }) => await changePost(id, dto, prisma),
   },
 
   deletePost: {
@@ -58,9 +59,9 @@ export const PostMutations = {
     args: {
       id: { type: new GraphQLNonNull(UUIDType) }
     },
-    resolve: async (_, { id }, { deletePost }) => {
-      await deletePost(id);
+    resolve: async (_, { id }, { prisma }) => {
+      await deletePost(id, prisma);
       return "Post deleted successfully";
-    }
-  }
+    },
+  },
 };
